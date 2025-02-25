@@ -26,7 +26,7 @@ const EditProfile = () => {
         return;
       }
   
-      const response = await fetch("http://127.0.0.1:8000/api/edit-profile/", {
+      const response = await fetch("http://103.206.101.254:8015/api/edit-profile/", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

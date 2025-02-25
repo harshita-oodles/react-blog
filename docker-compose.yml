@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: backend_django_1
+    ports:
+      - "8015:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DEBUG=True
+      - DB_NAME=Blogging
+      - DB_USER=root
+      - DB_PASSWORD=MySecureP@ssw0rd!
+      - DB_HOST=db
+      - DB_PORT=3312  # Ensure this matches MySQL
+    volumes:
+      - ./backend:/app
+    restart: always
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+  frontend:
+    build: ./frontend
+    container_name: frontend_react_1
+    ports:
+      - "5015:3000"
+    depends_on:
+      - backend
+    restart: always
+    command: ["npm", "start"]
+    volumes:
+      - ./frontend:/app
+
+  db:
+    image: mysql:8
+    container_name: mysql_database
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: MySecureP@ssw0rd!
+      MYSQL_DATABASE: Blogging
+    ports:
+      - "3312:3306"  # Expose MySQL on 3312
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pMySecureP@ssw0rd!"]
+      interval: 10s
+      retries: 10
+      timeout: 10s
+      start_period: 30s
+
+volumes:
+  mysql_data:
+

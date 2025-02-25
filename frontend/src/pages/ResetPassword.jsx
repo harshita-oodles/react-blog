@@ -24,7 +24,7 @@ const ResetPassword = () => {
     console.log("Sending data:", { otp, new_password: newPassword, token });
   
     try {
-      const response = await fetch("http://localhost:8000/api/reset-password/", {
+      const response = await fetch("http://103.206.101.254:8015/api/reset-password/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -139,6 +139,7 @@ def deleteBlog(request, pk):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getComments(request, pk):
     comments = Comment.objects.filter(blog=pk)
     serializer = CommentSerializer(comments, many=True)
@@ -146,7 +147,7 @@ def getComments(request, pk):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def createComment(request):
     data = request.data
     blog = Blog.objects.get(id=data['blog'])
@@ -258,6 +259,7 @@ def getProfile(request, pk):
 
 # Request Password Reset (Generate OTP)
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def request_password_reset(request):
     data = request.data
     try:
@@ -283,6 +285,7 @@ def request_password_reset(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def reset_password(request):
     data = request.data
     otp = data.get('otp')  # Use get() to avoid KeyError

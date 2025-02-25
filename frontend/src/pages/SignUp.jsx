@@ -137,7 +137,7 @@ const SignUp = () => {
                   htmlFor="email"
                   className="block mb-2 text-sm font-medium  "
                 >
-                  Email (optional)
+                  Email <span className="text-red-500 font-bold">* </span>
                 </label>
                 <input
                   className="bg-primary-base shadow-lg  sm:text-sm rounded-lg focus:ring-primary  block w-full p-2.5 focus:outline-none"

@@ -18,7 +18,7 @@ const ForgotPassword = () => {
     if (email) {
       try {
         // API request to send password reset link
-        const response = await fetch("http://localhost:8000/api/request-password-reset/", {
+        const response = await fetch("http://103.206.101.254:8015/api/request-password-reset/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
