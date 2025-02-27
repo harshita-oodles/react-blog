@@ -1,17 +1,13 @@
 #views 
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework import status
+from rest_framework import status, generics, permissions
 from .models import Blog, Comment, Profile, PasswordResetRequest, EmailVerification
-from .serializers import (
-    BlogSerializer,
-    CommentSerializer,
-    ProfileSerializer,
-    CommentCreateSerializer,
-    LoginSerializer,
-    EditProfileSerializer,
-    
-)
+from .serializers import *
+from rest_framework import generics, permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.permissions import IsAuthenticated
@@ -27,7 +23,7 @@ from rest_framework.permissions import AllowAny
 import random
 from django.core.mail import send_mail
 from django.conf import settings
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError,NotFound, PermissionDenied
 from django.utils import timezone
 from datetime import timedelta
 import uuid
@@ -37,7 +33,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
 from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
+from django.utils.encoding import force_str, smart_bytes
 from django.contrib.auth.tokens import default_token_generator
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -45,6 +41,15 @@ from rest_framework import status
 from api.models import Profile  # Change if your model is in another app
 from api.serializers import ProfileSerializer
 from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import *
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode
+from django.urls import reverse
+import json
+from django.utils.encoding import force_bytes
 
 
 @api_view(['POST'])
@@ -58,6 +63,9 @@ def loginUser(request):
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
+        if not user.is_active:
+            raise AuthenticationFailed("Your email is not verified. Please check your inbox.")
+
         token = super().get_token(user)
         token['username'] = user.username
         
@@ -78,6 +86,7 @@ def loginUser(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getBlogs(request):
     category = request.GET.get('category', None)
     if category is not None:
@@ -91,6 +100,8 @@ def getBlogs(request):
 
 
 @api_view(['GET'])
+
+@permission_classes([AllowAny])
 def getBlog(request, pk):
     blog = Blog.objects.get(pk=pk)
     blogSerializer = BlogSerializer(blog, many=False)
@@ -139,6 +150,7 @@ def deleteBlog(request, pk):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getComments(request, pk):
     comments = Comment.objects.filter(blog=pk)
     serializer = CommentSerializer(comments, many=True)
@@ -146,7 +158,7 @@ def getComments(request, pk):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def createComment(request):
     data = request.data
     blog = Blog.objects.get(id=data['blog'])
@@ -187,42 +199,97 @@ def registerUser(request):
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         current_site = get_current_site(request)
+        
+        # Generate the full verification URL for backend
         verification_url = f"http://{current_site.domain}{reverse('verify-email', kwargs={'uidb64': uid, 'token': token})}"
+
+        # Frontend URL for easy access to email verification page (with both uid and token as query params)
+        frontend_verification_url = f"http://localhost:3000/emailverify"
 
         # Send email
         subject = 'Verify Your Email'
-        message = f'Hi {user.first_name},\n\nClick the link below to verify your email:\n\n{verification_url}\n\nThank you!'
+        message = f'''Hi {user.first_name},
+
+Click the link below to verify your email:
+{frontend_verification_url}
+
+Alternatively, you can use the following verification details (in case you need to manually input them):
+
+{uid}/{token}
+
+Thank you!'''
+
+        # Send the email to the user
         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
 
+        # Serialize the user data and send response
         serializer = ProfileSerializer(user, many=False)
         return Response({'message': 'A verification email has been sent to your email address. Please verify your account.', 'user': serializer.data}, status=status.HTTP_201_CREATED)
 
     except Exception as e:
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])  # Ensure user is authenticated
-def editProfile(request):
+
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def resendVerification(request):
+    data = request.data
+    username = data.get('username')
+    
     try:
-        # ✅ Ensure user is authenticated
+        user = Profile.objects.get(username=username, is_active=False)  # Only inactive users
+    except Profile.DoesNotExist:
+        return Response({"error": "User not found or already verified."}, status=400)
+
+    # Generate email verification token
+    token = default_token_generator.make_token(user)
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    current_site = get_current_site(request)
+    
+    # Generate the full verification URL for backend
+    verification_url = f"http://{current_site.domain}{reverse('verify-email', kwargs={'uidb64': uid, 'token': token})}"
+
+    # Frontend URL for easy access to email verification page (with both uid and token as query params)
+    frontend_verification_url = f"http://localhost:3000/emailverify"
+
+    # Send email
+    subject = 'Verify Your Email'
+    message = f'''Hi {user.first_name},
+
+Click the link below to verify your email:
+{frontend_verification_url}
+
+Alternatively, you can use the following verification details (in case you need to manually input them):
+
+{uid}/{token}
+
+Thank you!'''
+
+    try:
+        # Send the email to the user
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+
+        # Serialize the user data and send response
+        return Response({'message': 'Verification email resent. Please check your inbox.'}, status=200)
+    
+    except Exception as e:
+        return Response({"detail": str(e)}, status=400)
+class UpdateUserDataView(generics.UpdateAPIView):
+    queryset = Profile.objects.all()  
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
         user = request.user
-        if not user or user.is_anonymous:
-            return Response({'detail': 'User is not authenticated.'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        # ✅ Check if request data is not empty
-        if not request.data:
-            return Response({'detail': 'No data provided'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # ✅ Ensure user instance is passed to serializer
-        serializer = EditProfileSerializer(user, data=request.data, partial=True)
-
+        serializer = self.get_serializer(user, data=request.data)  # Update the profile, not the user directly
         if serializer.is_valid():
             serializer.save()
-            return Response({"message": "Profile updated successfully!", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"message": "User data updated successfully!", "data": serializer.data})
+        return Response(serializer.errors, status=400)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 
-    except Exception as e:
-        return Response({'detail': f'An error occurred: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 def getCategory(request):
@@ -258,6 +325,7 @@ def getProfile(request, pk):
 
 # Request Password Reset (Generate OTP)
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def request_password_reset(request):
     data = request.data
     try:
@@ -283,6 +351,7 @@ def request_password_reset(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def reset_password(request):
     data = request.data
     otp = data.get('otp')  # Use get() to avoid KeyError
@@ -352,8 +421,8 @@ class ChangePasswordView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_profile(request):
     """Return the authenticated user's profile data."""
-    serializer = EditProfileSerializer(request.user)
+    serializer = UserProfileSerializer(request.user)
     return Response(serializer.data, status=status.HTTP_200_OK)

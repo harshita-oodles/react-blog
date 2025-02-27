@@ -11,10 +11,10 @@ class Profile(AbstractUser):
         upload_to='profile/', blank=True, null=True, default='profile/default.png'
     )
     bio = models.TextField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)  # Track last update
 
     def __str__(self):
         return self.username 
-
 class Blog(models.Model):
 
     CHOICES = (

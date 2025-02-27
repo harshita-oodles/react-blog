@@ -1,8 +1,7 @@
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.urls import path
 from .import views
-from .views import MyTokenObtainPairView, ChangePasswordView, editProfile, verify_email,get_profile
-
+from .views import *
 
 urlpatterns = [
     path('blogs/', views.getBlogs, name="blogs"),
@@ -21,10 +20,14 @@ urlpatterns = [
 
     # User
     path('register/', views.registerUser, name="register"),
-     path('verify-email/<uidb64>/<token>/', verify_email, name='verify-email'),
+    path('verify-email/<uidb64>/<token>/', verify_email, name='verify-email'),
     path('profile/<int:pk>/', views.getProfile, name="getProfile"),
-    path('edit-profile/', editProfile, name='edit-profile'),
+    path('profile/update/', UpdateUserDataView.as_view(), name='profile-update'),
+  #  path('profile/update/<int:pk>/', UpdateUserDataView),  # Endpoint to update profile
+
+   
      path("api/profile/", get_profile, name="get-profile"),
+     path('resend-verification/', resendVerification, name='resend-verification'),
     # Authentication
     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

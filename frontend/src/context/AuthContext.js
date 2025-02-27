@@ -31,18 +31,48 @@ export const AuthContextProvider = ({ children }) => {
         password: password,
       }),
     });
+  
     let data = await response.json();
-
+  
     if (response.status === 200) {
       setAuthToken(data);
       setUser(jwt_decode(data.access));
       localStorage.setItem("authToken", JSON.stringify(data));
       localStorage.setItem("user", JSON.stringify(jwt_decode(data.access)));
       navigate("/");
+      return { success: true }; // Return success status
     } else {
       setErrMessage(data.detail);
+      return { success: false, error: data.detail }; // Return error message if failure
     }
   };
+  
+  const resendVerificationEmail = async (username) => {
+    try {
+      const response = await fetch(`${BASE_URL}/api/resend-verification/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username }), // Make sure username is passed
+      });
+  
+      if (response.ok) {
+        // If response is OK, return JSON
+        const responseData = await response.json();
+        return responseData;  
+      } else {
+        // If not OK, attempt to parse the error message from the response
+        const errorData = await response.json();
+        throw new Error(errorData.message);
+      }
+    } catch (error) {
+      console.error("Error resending verification email:", error);
+      // Re-throw the error so it can be handled in the calling function
+      throw error;
+    }
+  };
+
 
   const updateToken = async () => {
     let response = await fetch(`${BASE_URL}/api/token/refresh/`, {
@@ -88,6 +118,7 @@ export const AuthContextProvider = ({ children }) => {
     localStorage.removeItem("user");
   };
 
+
   return (
     <AuthContext.Provider
       value={{
@@ -96,6 +127,8 @@ export const AuthContextProvider = ({ children }) => {
         authToken: authToken,
         userLogout: userLogout,
         errMessage: errMessage,
+        resendVerificationEmail: resendVerificationEmail,
+        
       }}
     >
       {loading ? null : children}

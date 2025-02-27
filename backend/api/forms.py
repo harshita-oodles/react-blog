@@ -12,3 +12,5 @@ class ProfileChangeForm(UserChangeForm):
     class Meta:
         model = Profile
         fields = ('first_name', 'last_name','username', 'email', 'photo', 'bio')
+        
+

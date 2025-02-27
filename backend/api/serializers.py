@@ -87,21 +87,12 @@ class ProfileSerializer(ModelSerializer):
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
-class EditProfileSerializer(serializers.ModelSerializer):
+
+class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ["first_name", "last_name", "username"]
-
-    def update(self, instance, validated_data):
-        """Update user profile with new data."""
-        if instance is None:
-            raise serializers.ValidationError("User instance is missing")
-
-        instance.first_name = validated_data.get("first_name", instance.first_name)
-        instance.last_name = validated_data.get("last_name", instance.last_name)
-        instance.username = validated_data.get("username", instance.username)
-        instance.save()
-        return instance
+        model = Profile
+        fields = ['username', 'photo']
+        
 
 
     

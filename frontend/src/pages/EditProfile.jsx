@@ -1,94 +1,96 @@
+
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";  
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.min.css";
+import { GetContent } from "../services/GetContent";
 
 const EditProfile = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
     username: "",
+    bio: "",
+    photo: null,
   });
-
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [previewImage, setPreviewImage] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0]; // Ensure file exists
+    if (!file) {
+      console.warn("No file selected!");
+      return;
+    }
+
+    const objectURL = URL.createObjectURL(file);
+    setPreviewImage(objectURL); // Preview image
+    setFormData((prevData) => ({
+      ...prevData,
+      photo: file, // Update to match 'photo' instead of 'profileImage'
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage("");
-    setError("");
     setLoading(true);
   
+    const formDataToSend = new FormData();
+    if (formData.username) formDataToSend.append("username", formData.username);
+    if (formData.bio) formDataToSend.append("bio", formData.bio);
+    if (formData.photo) formDataToSend.append("photo", formData.photo);
+  
     try {
-      const token = localStorage.getItem("token");
+      const token = GetContent.getAuthToken();  // Get the auth token from localStorage
+  
       if (!token) {
-        setError("Authentication failed. Please log in.");
+        toast.error("You are not authenticated. Please log in again.");
+        setLoading(false);
         return;
       }
   
-      const response = await fetch("http://127.0.0.1:8000/api/edit-profile/", {
+      const response = await fetch(`http://103.206.101.254:8015/api/profile/update/`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Make sure it's `Token` or `Bearer`
+          "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: formDataToSend,
       });
   
       const data = await response.json();
+  
       if (response.ok) {
-        setMessage("Profile updated successfully!");
-        setTimeout(() => navigate("/profile"), 1500);
+        toast.success("Profile updated successfully!");
+        setTimeout(() => navigate("/profile"), 1500);  // Navigate to profile page
       } else {
-        setError(data.detail || "Failed to update profile.");
+        throw new Error(data.detail || "Failed to update profile.");
       }
-    } catch (err) {
-      setError("Error updating profile.");
+    } catch (error) {
+      toast.error(error.message);
     }
   
     setLoading(false);
   };
   
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r bg-primary-neutral">
-      <div className="max-w-md w-full bg-gray-600 p-8 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-semibold text-center text-primary mb-4">Edit Profile</h2>
-        {message && <div className="text-green-500 text-center">{message}</div>}
-        {error && <div className="text-red-500 text-center">{error}</div>}
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <ToastContainer position="top-center" autoClose={3000} />
+      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
+        <h2 className="text-2xl font-semibold text-center text-gray-800 mb-4">Edit Profile</h2>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="first_name" className="block text-sm font-medium text-gray-900">
-              First Name
-            </label>
-            <input
-              type="text"
-              id="first_name"
-              name="first_name"
-              value={formData.first_name}
-              onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
+        {previewImage && (
+          <div className="flex justify-center mb-4">
+            <img src={previewImage} alt="Profile" className="w-24 h-24 rounded-full object-cover" />
           </div>
+        )}
 
+        <form onSubmit={handleSubmit} encType="multipart/form-data">
           <div className="mb-4">
-            <label htmlFor="last_name" className="block text-sm font-medium text-gray-900">
-              Last Name
-            </label>
-            <input
-              type="text"
-              id="last_name"
-              name="last_name"
-              value={formData.last_name}
-              onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          <div className="mb-4">
-            <label htmlFor="username" className="block text-sm font-medium text-gray-900">
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
               Username
             </label>
             <input
@@ -96,9 +98,36 @@ const EditProfile = () => {
               id="username"
               name="username"
               value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              onChange={handleInputChange}
               className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
+            />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="bio" className="block text-sm font-medium text-gray-700">
+              Bio
+            </label>
+            <textarea
+              id="bio"
+              name="bio"
+              value={formData.bio}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows="3"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="photo" className="block text-sm font-medium text-gray-700">
+              Profile Photo
+            </label>
+            <input
+              type="file"
+              id="photo"
+              name="photo"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="w-full p-2 border border-gray-300 rounded mt-1"
             />
           </div>
 
@@ -118,3 +147,4 @@ const EditProfile = () => {
 };
 
 export default EditProfile;
+

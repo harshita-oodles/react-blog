@@ -62,39 +62,44 @@ export class GetContent {
     // Fetch blog details
     static async fetchBlog(id) {
       let token = GetContent.getAuthToken();
-      if (!token) {
-        console.error("No authentication token found");
-        return null;
-      }
-  
+    
       try {
-        console.log("Fetching blog with token:", token);
-        let response = await fetch(`${GetContent.URL}${id}`, {
+        console.log("Fetching blog ID:", id);
+    
+        let headers = { "Content-Type": "application/json" };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+    
+        let response = await fetch(`${GetContent.URL}${id}/`, {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: headers,
         });
-  
-        if (response.status === 401) {
+    
+        console.log("Response status:", response.status);
+    
+        // If the token is expired, try refreshing it
+        if (response.status === 401 && token) {
           token = await GetContent.refreshToken();
           if (!token) return null;
-  
-          response = await fetch(`${GetContent.URL}${id}`, {
+    
+          headers["Authorization"] = `Bearer ${token}`;
+          response = await fetch(`${GetContent.URL}${id}/`, {
             method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+            headers: headers,
           });
+    
+          console.log("Response after refresh:", response.status);
         }
-  
+    
         if (!response.ok) {
           throw new Error(`Failed to fetch blog: ${response.status}`);
         }
-  
-        return await response.json();
+    
+        const data = await response.json();
+        console.log("Fetched blog data:", data);
+    
+        return data;
       } catch (error) {
         console.error("Error fetching blog:", error);
         return null;
@@ -104,87 +109,96 @@ export class GetContent {
     // Fetch all blogs
     static async fetchAllBlogs() {
       let token = GetContent.getAuthToken();
-      if (!token) {
-        console.error("No authentication token found");
-        return [];
-      }
-  
+      
       try {
-        console.log("Fetching all blogs with token:", token);
+        console.log("Fetching all blogs...");
+        
+        let headers = { "Content-Type": "application/json" };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+    
         let response = await fetch(GetContent.URL, {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: headers,
         });
-  
-        if (response.status === 401) {
+    
+        console.log("Response status:", response.status);
+    
+        if (response.status === 401 && token) {
           token = await GetContent.refreshToken();
           if (!token) return [];
-  
+    
+          headers["Authorization"] = `Bearer ${token}`;
           response = await fetch(GetContent.URL, {
             method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+            headers: headers,
           });
+    
+          console.log("Response after refresh:", response.status);
         }
-  
+    
         if (!response.ok) {
           throw new Error(`Failed to fetch blogs: ${response.status}`);
         }
-  
-        return await response.json();
+    
+        const data = await response.json();
+        console.log("Fetched blogs:", data);
+    
+        return data;
       } catch (error) {
         console.error("Error fetching all blogs:", error);
         return [];
       }
     }
+    
   
     // Fetch blogs by category
     static async fetchAllBlogsByCategory(category) {
       let token = GetContent.getAuthToken();
-      if (!token) {
-        console.error("No authentication token found");
-        return [];
-      }
-  
+    
       try {
-        console.log(`Fetching blogs by category '${category}' with token:`, token);
+        console.log(`Fetching blogs by category '${category}'...`);
+        
+        let headers = { "Content-Type": "application/json" };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+    
         let response = await fetch(`${GetContent.URL}?category=${category}`, {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: headers,
         });
-  
-        if (response.status === 401) {
+    
+        console.log("Response status:", response.status);
+    
+        if (response.status === 401 && token) {
           token = await GetContent.refreshToken();
           if (!token) return [];
-  
+    
+          headers["Authorization"] = `Bearer ${token}`;
           response = await fetch(`${GetContent.URL}?category=${category}`, {
             method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+            headers: headers,
           });
+    
+          console.log("Response after refresh:", response.status);
         }
-  
+    
         if (!response.ok) {
           throw new Error(`Failed to fetch blogs: ${response.status}`);
         }
-  
-        return await response.json();
+    
+        const data = await response.json();
+        console.log("Fetched category-wise blogs:", data);
+    
+        return data;
       } catch (error) {
         console.error("Error fetching blogs by category:", error);
         return [];
       }
     }
-  
+    
     // Fetch comments for a blog
     static async fetchComments(id) {
       try {

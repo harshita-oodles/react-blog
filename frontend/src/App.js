@@ -19,6 +19,7 @@ import EditProfile from "./pages/EditProfile";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmailVerification from "./pages/EmailVerification";
 
+
 function App() {
   return (
     <div className="container mx-auto">
@@ -34,10 +35,8 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} /> {/* Add this route */}
           <Route path="/changepassword" element={<ChangePassword />} />
-        
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/emailverify" element={<EmailVerification />} />
-          
           <Route path="/blog/:id" element={<BlogDetails />} />
           <Route element={<PrivateRoutes />}>
             <Route path="/profile" element={<Profile />} />

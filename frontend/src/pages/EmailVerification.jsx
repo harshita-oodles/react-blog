@@ -54,6 +54,7 @@ const EmailVerification = () => {
           Verify Email
         </button>
         {message && <p className="mt-4 text-center text-gray-700">{message}</p>}
+        
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import FileValidation from "../services/FileValidation";
 
+
 const SignUp = () => {
   const navigate = useNavigate();
   const BASE_URL = process.env.REACT_APP_BASE_URL;
@@ -50,11 +51,8 @@ const SignUp = () => {
       const data = await response.json();
 
       if (response.ok) {
-        if (user.email) {
-          navigate("/emailverify", { state: { message: "Please verify your email." } });
-        } else {
-          navigate("/login", { state: { message: "Successfully registered!" } });
-        }
+        // Navigate directly to login page after successful registration
+        navigate("/login");
       } else {
         setMessage(data.detail || "Registration failed.");
       }
@@ -62,7 +60,6 @@ const SignUp = () => {
       setMessage("Something went wrong. Please try again later.");
     }
   };
-
   return (
     <>
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
@@ -137,7 +134,7 @@ const SignUp = () => {
                   htmlFor="email"
                   className="block mb-2 text-sm font-medium  "
                 >
-                  Email (optional)
+                  Email <span className="text-red-500 font-bold">* </span>
                 </label>
                 <input
                   className="bg-primary-base shadow-lg  sm:text-sm rounded-lg focus:ring-primary  block w-full p-2.5 focus:outline-none"
@@ -218,6 +215,7 @@ const SignUp = () => {
                     Log In
                   </Link>
                 </p>
+               
               </div>
             </form>
           </div>
